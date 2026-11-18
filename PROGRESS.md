@@ -4,8 +4,8 @@ Update at the end of each unit (CLOSE prompt). Times are minutes.
 
 ## Current
 - Current unit: Unit 1 Complete (ready for Unit 2)
-- Branch: main
-- Last commit: -
+- Branch: unit-1
+- Last commit: 085546b
 
 ## Units
 
