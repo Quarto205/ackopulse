@@ -6,109 +6,458 @@
   {% if auto_refresh %}
   <meta http-equiv="refresh" content="5">
   {% endif %}
-  <title>{% block title %}Pulse Operator Hub{% endblock %}</title>
+  <title>{% block title %}Pulse &mdash; Service Status & Incident Hub{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --border: #334155;
-      --text: #f8fafc;
+      --bg: #090d16;
+      --surface: #111827;
+      --card-bg: #151e32;
+      --card-bg-elevated: #1a253e;
+      --border: #23314e;
+      --border-focus: #3b82f6;
+      --text: #f1f5f9;
       --text-muted: #94a3b8;
+      --text-dim: #64748b;
       --healthy: #10b981;
+      --healthy-bg: rgba(16, 185, 129, 0.12);
+      --healthy-border: rgba(16, 185, 129, 0.35);
       --degraded: #f59e0b;
+      --degraded-bg: rgba(245, 158, 11, 0.12);
+      --degraded-border: rgba(245, 158, 11, 0.35);
       --down: #ef4444;
+      --down-bg: rgba(239, 68, 68, 0.12);
+      --down-border: rgba(239, 68, 68, 0.35);
       --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-bg: rgba(59, 130, 246, 0.12);
+      --radius: 10px;
+      --radius-sm: 6px;
+      --radius-pill: 99px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
     }
+
+    * { box-sizing: border-box; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg);
       color: var(--text);
       margin: 0;
-      padding: 24px;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
     }
-    header {
+
+    .container {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* App Header */
+    header.site-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+    }
+
+    .header-inner {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 24px;
+      padding: 14px 0;
     }
-    h1, h2, h3 { margin: 0 0 12px 0; }
-    a { color: var(--primary); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #2563eb, #10b981);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      background: var(--primary-bg);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
     }
-    .badge-healthy { background: rgba(16, 185, 129, 0.2); color: var(--healthy); border: 1px solid var(--healthy); }
-    .badge-degraded { background: rgba(245, 158, 11, 0.2); color: var(--degraded); border: 1px solid var(--degraded); }
-    .badge-down { background: rgba(239, 68, 68, 0.2); color: var(--down); border: 1px solid var(--down); }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .clock-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.7);
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+    }
+
+    .beacon {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--healthy);
+      box-shadow: 0 0 8px var(--healthy);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    main.site-main {
+      flex: 1;
+      padding: 28px 0 48px 0;
+    }
+
+    /* Headings */
+    h1, h2, h3, h4 {
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 12px 0;
+    }
+
+    h2 { font-size: 18px; display: flex; align-items: center; gap: 8px; }
+
+    a { color: var(--primary); text-decoration: none; transition: color 0.15s; }
+    a:hover { color: #60a5fa; text-decoration: none; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--primary);
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease-in-out;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #2a374f;
+      color: #fff;
+    }
+
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 5px;
+    }
+
+    /* Cards */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 20px;
+      border-radius: var(--radius);
+      padding: 22px;
       margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
     }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
-    th { color: var(--text-muted); font-size: 13px; text-transform: uppercase; }
-    .spark { display: inline-flex; gap: 4px; align-items: center; }
-    .spark-item { padding: 2px 6px; font-size: 11px; border-radius: 3px; background: #334155; }
-    .btn {
-      background: var(--primary);
-      color: #fff;
-      padding: 8px 16px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-weight: 500;
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
     }
-    .btn:hover { opacity: 0.9; }
-    .btn-secondary { background: #475569; }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .badge-healthy, .badge-up {
+      background: var(--healthy-bg);
+      color: var(--healthy);
+      border: 1px solid var(--healthy-border);
+    }
+    .badge-healthy .badge-dot, .badge-up .badge-dot { background: var(--healthy); }
+
+    .badge-degraded, .badge-issue {
+      background: var(--degraded-bg);
+      color: var(--degraded);
+      border: 1px solid var(--degraded-border);
+    }
+    .badge-degraded .badge-dot, .badge-issue .badge-dot { background: var(--degraded); }
+
+    .badge-down, .badge-outage {
+      background: var(--down-bg);
+      color: var(--down);
+      border: 1px solid var(--down-border);
+    }
+    .badge-down .badge-dot, .badge-outage .badge-dot { background: var(--down); }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 4px;
+    }
+
+    th {
+      background: rgba(17, 24, 39, 0.6);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+      font-size: 13.5px;
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tbody tr { transition: background-color 0.12s; }
+    tbody tr:hover td { background-color: rgba(255, 255, 255, 0.025); }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: #cbd5e1;
+    }
+
+    /* Sparkline & Pill Chips */
+    .spark { display: inline-flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+    .spark-item {
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 7px;
+      font-size: 11px;
+      border-radius: 4px;
+      background: rgba(51, 65, 85, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+    }
+    .spark-item.fast { color: var(--healthy); }
+    .spark-item.slow { color: var(--degraded); }
+    .spark-item.error { color: var(--down); background: var(--down-bg); border-color: var(--down-border); }
+
+    /* Form Inputs */
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #e2e8f0;
+    }
+
+    .form-hint {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      margin-top: -4px;
+      margin-bottom: 12px;
+    }
+
     input, textarea, select {
-      background: #0f172a;
+      background: #0c1220;
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 8px 12px;
-      border-radius: 6px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
       width: 100%;
       box-sizing: border-box;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
+      font-family: inherit;
+      font-size: 13.5px;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .timeline { list-style: none; padding: 0; margin: 16px 0; }
-    .timeline-item { padding: 12px 16px; border-left: 2px solid var(--primary); margin-left: 8px; position: relative; }
-    .timeline-item::before {
-      content: "";
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Timeline */
+    .timeline { list-style: none; padding: 0 0 0 6px; margin: 16px 0; }
+    .timeline-item {
+      padding: 0 0 24px 24px;
+      border-left: 2px solid var(--border);
+      position: relative;
+    }
+    .timeline-item:last-child { border-left-color: transparent; padding-bottom: 0; }
+    .timeline-node {
       position: absolute;
-      left: -6px;
-      top: 16px;
-      width: 10px;
-      height: 10px;
+      left: -9px;
+      top: 0;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      background: var(--primary);
+      background: var(--card-bg);
+      border: 3px solid var(--primary);
+    }
+    .timeline-node.opened { border-color: var(--down); }
+    .timeline-node.acknowledged { border-color: var(--degraded); }
+    .timeline-node.resolved { border-color: var(--healthy); }
+    .timeline-node.note_added { border-color: var(--primary); }
+
+    /* Site Footer */
+    footer.site-footer {
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 16px 0;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
   </style>
 </head>
 <body>
-  <header>
-    <div>
-      <h1><a href="/ops" style="color: inherit;">Pulse Operator Hub</a></h1>
-      <span style="font-size: 13px; color: var(--text-muted);">Current UTC: {{ now_utc }} UTC</span>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <a href="/ops" class="brand">
+          <div class="brand-logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">
+              Pulse
+              <span class="brand-subtitle">Operator Hub</span>
+            </h1>
+          </div>
+        </a>
+      </div>
+
+      <div class="nav-actions">
+        <div class="clock-badge" title="Synchronized Central UTC Clock">
+          <span class="beacon"></span>
+          <span>{{ now_utc or 'UTC Live' }} UTC</span>
+        </div>
+        <nav style="display: flex; gap: 8px;">
+          <a href="/ops" class="btn btn-secondary btn-sm">Dashboard</a>
+          <a href="/ops/services/new" class="btn btn-sm">+ Register Service</a>
+          <a href="/status" target="_blank" class="btn btn-secondary btn-sm" style="border-color: rgba(59, 130, 246, 0.4);">
+            Public Page &rarr;
+          </a>
+        </nav>
+      </div>
     </div>
-    <nav>
-      <a href="/ops" class="btn btn-secondary">Dashboard</a>
-      <a href="/ops/services/new" class="btn" style="margin-left: 8px;">+ Register Service</a>
-      <a href="/status" target="_blank" style="margin-left: 16px;">View Public Page &rarr;</a>
-    </nav>
   </header>
-  <main>
-    {% block content %}{% endblock %}
+
+  <main class="site-main">
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
   </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>Pulse Service Health & Incident Hub &bull; Reliable Operator Telemetry</div>
+      <div>
+        <a href="/api/services" target="_blank" style="margin-right: 12px;">Catalogue API</a>
+        <a href="/api/metrics/summary" target="_blank">Metrics Summary API</a>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

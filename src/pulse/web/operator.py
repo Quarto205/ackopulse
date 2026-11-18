@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 
 from src.pulse.clock import clock
 from src.pulse.db import get_db
+from src.pulse.metrics.calc import service_metrics
 from src.pulse.services import ServiceCreate, create_service, list_services
 from src.pulse.state.incidents import (
     acknowledge_incident,
@@ -47,11 +48,20 @@ async def operator_dashboard(request: Request):
                 checks = [dict(r) for r in await cursor.fetchall()]
 
             latest_latency = checks[-1]["latency_ms"] if checks else None
+            try:
+                m = await service_metrics(db, s)
+                avail = m.get("availability")
+                budget = m.get("error_budget_remaining")
+            except Exception:
+                avail, budget = None, None
+
             services.append(
                 {
                     **s,
                     "latest_latency": latest_latency,
                     "recent_checks": checks,
+                    "availability": avail,
+                    "error_budget_remaining": budget,
                 }
             )
 
@@ -82,6 +92,10 @@ async def operator_dashboard(request: Request):
         ) as cursor:
             resolved_incidents = [dict(r) for r in await cursor.fetchall()]
 
+        healthy_count = sum(1 for s in services if s.get("current_state") == "HEALTHY")
+        degraded_count = sum(1 for s in services if s.get("current_state") == "DEGRADED")
+        down_count = sum(1 for s in services if s.get("current_state") == "DOWN")
+
     return templates.TemplateResponse(
         request=request,
         name="operator/dashboard.html",
@@ -90,6 +104,9 @@ async def operator_dashboard(request: Request):
             "recent_n": recent_n,
             "active_incidents": active_incidents,
             "resolved_incidents": resolved_incidents,
+            "healthy_count": healthy_count,
+            "degraded_count": degraded_count,
+            "down_count": down_count,
             "now_utc": now_utc_str,
             "auto_refresh": True,
         },

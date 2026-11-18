@@ -1,127 +1,277 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard — Pulse Operator Hub{% endblock %}
+{% block title %}Dashboard &mdash; Pulse Operator Hub{% endblock %}
 
 {% block content %}
+<!-- KPI Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
+  <div class="card" style="margin-bottom: 0; padding: 18px;">
+    <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">
+      Monitored Services
+    </div>
+    <div style="font-size: 28px; font-weight: 700; color: #fff;">
+      {{ services|length }}
+    </div>
+    <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">
+      {{ healthy_count|default(services|length) }} operational &bull; {{ (degraded_count|default(0)) + (down_count|default(0)) }} degraded/down
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 0; padding: 18px;">
+    <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">
+      System Health
+    </div>
+    <div style="font-size: 28px; font-weight: 700;">
+      {% if active_incidents %}
+        <span style="color: var(--down);">Active Incident</span>
+      {% elif degraded_count and degraded_count > 0 %}
+        <span style="color: var(--degraded);">Degraded</span>
+      {% else %}
+        <span style="color: var(--healthy);">All Systems Normal</span>
+      {% endif %}
+    </div>
+    <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">
+      Derived from periodic health checks
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 0; padding: 18px;">
+    <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">
+      Active Incidents
+    </div>
+    <div style="font-size: 28px; font-weight: 700; color: {% if active_incidents %}var(--down){% else %}var(--text){% endif %};">
+      {{ active_incidents|length }}
+    </div>
+    <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">
+      {% if active_incidents %}Action required by operator{% else %}No open incidents{% endif %}
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 0; padding: 18px;">
+    <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">
+      Resolved (History)
+    </div>
+    <div style="font-size: 28px; font-weight: 700; color: #fff;">
+      {{ resolved_incidents|length }}
+    </div>
+    <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">
+      Recorded incident lifecycle events
+    </div>
+  </div>
+</div>
+
+<!-- Monitored Services Table -->
 <section class="card">
-  <h2>Monitored Services</h2>
+  <div class="card-header">
+    <div>
+      <h2 style="margin: 0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+          <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+          <line x1="6" y1="6" x2="6.01" y2="6"></line>
+          <line x1="6" y1="18" x2="6.01" y2="18"></line>
+        </svg>
+        Monitored Services
+      </h2>
+    </div>
+    <a href="/ops/services/new" class="btn btn-sm btn-secondary">+ Add Service</a>
+  </div>
+
   {% if services %}
-  <table>
-    <thead>
-      <tr>
-        <th>Service</th>
-        <th>State</th>
-        <th>Health URL</th>
-        <th>Owner</th>
-        <th>Latest Latency</th>
-        <th>Recent Latencies (last {{ recent_n }})</th>
-        <th>Next Check (UTC)</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in services %}
-      <tr>
-        <td><strong>{{ s.name }}</strong></td>
-        <td>
-          <span class="badge badge-{{ s.current_state.lower() }}">{{ s.current_state }}</span>
-        </td>
-        <td><code>{{ s.health_url }}</code></td>
-        <td>{{ s.owner }}</td>
-        <td>
-          {% if s.latest_latency is not none %}
-            {{ s.latest_latency }} ms
-          {% else %}
-            <span style="color: var(--text-muted);">&mdash;</span>
-          {% endif %}
-        </td>
-        <td>
-          <div class="spark">
-            {% for check in s.recent_checks %}
-              <span class="spark-item" title="Checked: {{ check.checked_at }} UTC">
-                {% if check.latency_ms is not none %}{{ check.latency_ms }} ms{% else %}err{% endif %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>State</th>
+          <th>Health URL</th>
+          <th>Owner</th>
+          <th>Latest Latency</th>
+          <th>Recent Latencies (last {{ recent_n }})</th>
+          <th>24h Availability</th>
+          <th>Next Check (UTC)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in services %}
+        <tr>
+          <td>
+            <div style="font-weight: 600; color: #fff;">{{ s.name }}</div>
+            {% if s.slug %}<div style="font-size: 11px; color: var(--text-dim);">slug: {{ s.slug }}</div>{% endif %}
+          </td>
+          <td>
+            <span class="badge badge-{{ s.current_state.lower() }}">
+              <span class="badge-dot"></span>
+              {{ s.current_state }}
+            </span>
+          </td>
+          <td><code>{{ s.health_url }}</code></td>
+          <td style="color: var(--text-muted);">{{ s.owner }}</td>
+          <td>
+            {% if s.latest_latency is not none %}
+              <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: {% if s.latest_latency < 1500 %}var(--healthy){% else %}var(--degraded){% endif %};">
+                {{ s.latest_latency }} ms
               </span>
             {% else %}
-              <span style="color: var(--text-muted); font-size: 12px;">No checks yet</span>
-            {% endfor %}
-          </div>
-        </td>
-        <td style="font-size: 13px;">{{ s.next_check_at or '&mdash;' }} UTC</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+              <span style="color: var(--text-dim);">&mdash;</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="spark">
+              {% for check in s.recent_checks %}
+                <span class="spark-item {% if check.state == 'FAILED' or check.latency_ms is none %}error{% elif check.latency_ms >= 1500 %}slow{% else %}fast{% endif %}" title="Checked: {{ check.checked_at }} UTC &bull; State: {{ check.state }}">
+                  {% if check.latency_ms is not none %}{{ check.latency_ms }} ms{% else %}err{% endif %}
+                </span>
+              {% else %}
+                <span style="color: var(--text-dim); font-size: 12px;">No checks yet</span>
+              {% endfor %}
+            </div>
+          </td>
+          <td>
+            {% if s.availability is not none %}
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;">
+                {{ s.availability }}%
+              </div>
+              <div style="font-size: 10px; color: var(--text-dim);">
+                SLO: {{ s.slo_target }}%
+              </div>
+            {% else %}
+              <span style="color: var(--text-dim); font-size: 12px;">n/a</span>
+            {% endif %}
+          </td>
+          <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted);">
+            {{ s.next_check_at or '&mdash;' }} UTC
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-    <p style="color: var(--text-muted);">No monitored services registered yet.</p>
+    <p style="color: var(--text-muted); text-align: center; padding: 24px 0;">No monitored services registered yet.</p>
   {% endif %}
 </section>
 
-<section class="card">
-  <h2>Active Incidents</h2>
+<!-- Active Incidents Section -->
+<section class="card" style="border-left: 4px solid var(--down);">
+  <div class="card-header">
+    <h2 style="margin: 0; color: var(--down);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+      Active Incidents
+    </h2>
+  </div>
+
   {% if active_incidents %}
-  <table>
-    <thead>
-      <tr>
-        <th>Incident</th>
-        <th>Service</th>
-        <th>Opened (UTC)</th>
-        <th>Status</th>
-        <th>Acknowledged</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for inc in active_incidents %}
-      <tr>
-        <td><a href="/ops/incidents/{{ inc.id }}">#{{ inc.id }} &mdash; {{ inc.title }}</a></td>
-        <td><strong>{{ inc.service_name }}</strong></td>
-        <td>{{ inc.opened_at }} UTC</td>
-        <td><span class="badge badge-down">ACTIVE</span></td>
-        <td>
-          {% if inc.acknowledged_at %}
-            <span style="color: var(--healthy);">&check; by {{ inc.acknowledged_by }}</span>
-          {% else %}
-            <span style="color: var(--degraded);">&cross; Unacknowledged</span>
-          {% endif %}
-        </td>
-        <td>
-          <a href="/ops/incidents/{{ inc.id }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Manage</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Incident</th>
+          <th>Service</th>
+          <th>Opened (UTC)</th>
+          <th>Status</th>
+          <th>Acknowledged</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inc in active_incidents %}
+        <tr>
+          <td>
+            <a href="/ops/incidents/{{ inc.id }}" style="font-weight: 600; color: #fff;">
+              #{{ inc.id }} &mdash; {{ inc.title }}
+            </a>
+          </td>
+          <td><strong>{{ inc.service_name }}</strong></td>
+          <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">{{ inc.opened_at }} UTC</td>
+          <td>
+            <span class="badge badge-down">
+              <span class="badge-dot"></span>
+              ACTIVE
+            </span>
+          </td>
+          <td>
+            {% if inc.acknowledged_at %}
+              <span style="color: var(--healthy); font-size: 12.5px; font-weight: 500;">
+                &check; Acknowledged by {{ inc.acknowledged_by }}
+              </span>
+            {% else %}
+              <span class="badge badge-degraded" style="font-size: 10px;">
+                Unacknowledged
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="/ops/incidents/{{ inc.id }}" class="btn btn-secondary btn-sm">Manage &rarr;</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-    <p style="color: var(--healthy);">&check; No active incidents at this time.</p>
+    <div style="display: flex; align-items: center; gap: 8px; color: var(--healthy); padding: 8px 0; font-size: 14px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      No active incidents at this time. All monitored services are within healthy operational thresholds.
+    </div>
   {% endif %}
 </section>
 
+<!-- Incident History Section -->
 <section class="card">
-  <h2>Recent Incident History</h2>
+  <div class="card-header">
+    <h2 style="margin: 0;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 14 14"></polyline>
+      </svg>
+      Recent Incident History
+    </h2>
+  </div>
+
   {% if resolved_incidents %}
-  <table>
-    <thead>
-      <tr>
-        <th>Incident</th>
-        <th>Service</th>
-        <th>Opened (UTC)</th>
-        <th>Resolved (UTC)</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for inc in resolved_incidents %}
-      <tr>
-        <td><a href="/ops/incidents/{{ inc.id }}">#{{ inc.id }} &mdash; {{ inc.title }}</a></td>
-        <td>{{ inc.service_name }}</td>
-        <td>{{ inc.opened_at }} UTC</td>
-        <td>{{ inc.resolved_at }} UTC</td>
-        <td><span class="badge badge-healthy">RESOLVED</span></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Incident</th>
+          <th>Service</th>
+          <th>Opened (UTC)</th>
+          <th>Resolved (UTC)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inc in resolved_incidents %}
+        <tr>
+          <td>
+            <a href="/ops/incidents/{{ inc.id }}">
+              #{{ inc.id }} &mdash; {{ inc.title }}
+            </a>
+          </td>
+          <td><strong>{{ inc.service_name }}</strong></td>
+          <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted);">{{ inc.opened_at }} UTC</td>
+          <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--healthy);">{{ inc.resolved_at }} UTC</td>
+          <td>
+            <span class="badge badge-healthy">
+              <span class="badge-dot"></span>
+              RESOLVED
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-    <p style="color: var(--text-muted);">No incident history recorded.</p>
+    <p style="color: var(--text-dim); text-align: center; padding: 18px 0;">No incident history recorded.</p>
   {% endif %}
 </section>
 {% endblock %}
