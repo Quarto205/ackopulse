@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Status{% endblock %}
+{% block content %}
+<h1>Service Status</h1>
+
+<section>
+  <h2>Current status</h2>
+  {% if services %}
+  <table>
+    <thead><tr><th>Service</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for s in services %}
+      <tr>
+        <td>{{ s.name }}</td>
+        <td><span class="badge badge-{{ s.state|lower }}">{{ s.state }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No services are being monitored.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Recent incidents (last 24 hours)</h2>
+  {% if incidents %}
+  <ul>
+    {% for i in incidents %}
+    <li>
+      <strong>{{ i.title }}</strong>
+      &mdash; {{ i.status }}
+      (opened {{ i.opened_at }}{% if i.resolved_at %}, resolved {{ i.resolved_at }}{% endif %})
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No incidents in the last 24 hours.</p>
+  {% endif %}
+</section>
+
+<p class="estimate-label">Status is derived from periodic health checks (sampled estimate).</p>
+{% endblock %}
