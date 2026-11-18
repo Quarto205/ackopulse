@@ -40,3 +40,17 @@ async def api_get_service(service_id: int):
                 detail=f"Service with id {service_id} not found",
             )
         return service
+
+
+@router.get("/metrics/summary")
+async def api_metrics_summary():
+    """Per-service availability, budget, MTTD, MTTR (D-25/26/27)."""
+    from src.pulse.metrics.calc import service_metrics
+    async with get_db() as db:
+        async with db.execute(
+            "SELECT id, name, current_state, slo_target FROM services ORDER BY id"
+        ) as cur:
+            rows = [dict(zip(("id", "name", "current_state", "slo_target"), r))
+                    for r in await cur.fetchall()]
+        metrics = [await service_metrics(db, row) for row in rows]
+    return {"services": metrics}

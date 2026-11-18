@@ -11,6 +11,7 @@ from src.pulse.config import settings
 from src.pulse.db import init_db
 from src.pulse.seed import seed_services
 from src.pulse.web.operator import router as operator_router
+from src.pulse.web.public import router as public_router
 
 
 @asynccontextmanager
@@ -33,8 +34,15 @@ async def lifespan(app: FastAPI):
             await asyncio.sleep(1.0)
 
     task = asyncio.create_task(loop())
+
+    # U6: webhook sender background task (D-28) — never awaited in check loop
+    from src.pulse.notify.webhook import WebhookSender
+    sender = WebhookSender()  # D-23: 3 attempts, 2 s delay
+    sender_task = asyncio.create_task(sender.run_forever())
+    app.state.webhook_sender = sender
     yield
     task.cancel()
+    sender_task.cancel()
 
 
 app = FastAPI(
@@ -45,6 +53,7 @@ app = FastAPI(
 
 app.include_router(api_router)
 app.include_router(operator_router)
+app.include_router(public_router)
 
 
 @app.get("/", include_in_schema=False)

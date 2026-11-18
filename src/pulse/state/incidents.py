@@ -3,6 +3,7 @@
 Follows DECISIONS.md D-02, D-03, D-09, D-11.
 """
 from src.pulse.clock import clock
+from src.pulse.notify.webhook import queue_delivery
 
 
 async def open_incident(db, service_id: int, service_name: str, now_iso: str | None = None) -> int | None:
@@ -33,6 +34,7 @@ async def open_incident(db, service_id: int, service_name: str, now_iso: str | N
         """,
         (incident_id, f"Incident opened: {title}", now_ts),
     )
+    await queue_delivery(db, incident_id, "incident_opened")  # D-28: pending row, sent by background task
     return incident_id
 
 
@@ -59,6 +61,7 @@ async def resolve_incident(db, service_id: int, now_iso: str | None = None) -> i
         """,
         (incident_id, now_ts),
     )
+    await queue_delivery(db, incident_id, "incident_resolved")  # D-28
     return incident_id
 
 

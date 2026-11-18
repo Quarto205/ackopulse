@@ -12,6 +12,8 @@ Updated at each CLOSE. One row per test case. Marker = pytest marker.
 |---|---|---|---|---|
 | 2026-11-18 12:51:25 | unit_00, unit_01 | 10 | 0 | All tests passed |
 | 2026-11-18 19:55:00 | unit_00..unit_02 | 19 | 0 | 9 unit_02 tests pass; full suite 19/19 |
+| 2026-11-18 20:15:00 | unit_00..unit_05 | 56 | 0 | 6 unit_05 tests pass; full suite 56/56 |
+| 2026-11-18 20:50:00 | unit_00..unit_06 | 66 | 0 | 10 unit_06 tests pass; full suite 66/66 |
 | 2026-11-18 19:58:30 | unit_00..unit_03 | 31 | 0 | 12 unit_03 classifier tests pass; full suite 31/31 |
 | 2026-11-18 20:05:00 | unit_00..unit_03 | 35 | 0 | 16 unit_03 tests pass; full suite 35/35 |
 | 2026-11-18 20:11:30 | unit_00..unit_04 | 50 | 0 | 15 unit_04 tests pass; full suite 50/50 |
@@ -92,12 +94,26 @@ Updated at each CLOSE. One row per test case. Marker = pytest marker.
 ### Unit 5 (unit_05)
 | ID | Test | Criterion | Status |
 |---|---|---|---|
-| | Public page content, no leaks (URL, owner, notes, ack), read-only, 405 on writes, empty states, escaping | | NOT RUN |
+| T5-1 | Public page lists services with collapsed states | UP/ISSUE/OUTAGE shown (D-21) | PASSED |
+| T5-2 | No private fields leak | health_url, owner, notes, ack absent from HTML (D-10) | PASSED |
+| T5-3 | Title passthrough + 24h history | Title shown; resolved >24h excluded (D-20, D-22) | PASSED |
+| T5-4 | Empty state renders | 200 with "no incidents" message | PASSED |
+| T5-5 | Read-only + separate prefix | POST /status -> 405; GET -> 200 | PASSED |
+| T5-6 | HTML escaping | Service name `<script>` renders as text | PASSED |
 
 ### Unit 6 (unit_06)
 | ID | Test | Criterion | Status |
 |---|---|---|---|
-| | Webhook open/resolve once, delivery records, retries, restart safety, no duplicates, metrics equal fixtures, "n/a" on no data, estimate label | | NOT RUN |
+| T6-1 | Pending delivery row on open | outcome=pending, key `{id}:incident_opened` (D-24) | PASSED |
+| T6-2 | Sender POSTs and marks delivered | Payload event/service correct (D-06) | PASSED |
+| T6-3 | Retries then records failure | attempt=3, outcome=failed (D-23) | PASSED |
+| T6-4 | No duplicate delivery | delivered row never re-sent (D-24) | PASSED |
+| T6-5 | Availability healthy-only | 2/4 in-window = 50%; 30h-old excluded (D-25) | PASSED |
+| T6-6 | Availability no-data n/a | None, never 100% | PASSED |
+| T6-7 | MTTD/MTTR formulas | mean(opened−first_failure)=1.5h; mean(resolved−opened)=1.5h (D-26) | PASSED |
+| T6-8 | MTTD no-data n/a | (None, None) | PASSED |
+| T6-9 | Error budget floored | 99.5/99.9→0; 99.95/99.9→0.05; 99.9/99.9→0 (D-27) | PASSED |
+| T6-10 | /api/metrics/summary | 200; availability + estimate label present | PASSED |
 
 ### Unit 7 (unit_07)
 | ID | Test | Criterion | Status |
@@ -128,7 +144,8 @@ Filled from prompt 3.0 using rules recorded in DECISIONS.md (D-01, D-02, D-03, D
 | Classification: healthy, degraded, failed | T3-1, T3-2, T3-3, T3-9 | DONE |
 | Consecutive failure and recovery thresholds | T3-4, T3-5, T3-6 | DONE |
 | No duplicate active incidents | T3-14, schema partial index | DONE |
-| Availability, MTTD, MTTR, error-budget calculations | | PENDING (U6) |
+| Availability, MTTD, MTTR, error-budget calculations | T6-5..T6-9 | DONE |
+| Unit tests: classification, thresholds (state machine) | U3 suite | DONE |
 | Integration: check persists result from mock /health | T2-4/T2-6 (fake HTTP server) | DONE |
 | Integration: down service opens incident and sends webhook | T3-14 (incident opened); webhook in U6 | DONE (Incident) / PENDING (Webhook) |
 | Integration: recovery resolves incident and sends recovery webhook | T3-15 (incident resolved); webhook in U6 | DONE (Incident) / PENDING (Webhook) |
