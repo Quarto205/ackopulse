@@ -1,0 +1,27 @@
+services:
+  pulse:
+    build: .
+    container_name: pulse-app
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      - DB_PATH=/app/data/pulse.db
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://webhook-receiver:9000/}
+      - CHECK_TIMEOUT_SECONDS=2.0
+      - DEGRADED_LATENCY_THRESHOLD_MS=1500
+      - FAILURES_TO_DOWN=2
+      - RECOVERY_SUCCESSES=2
+      - AVAILABILITY_WINDOW_HOURS=24
+      - DEFAULT_SLO_TARGET=99.9
+    volumes:
+      - pulse_data:/app/data
+    networks:
+      - pulse_net
+
+volumes:
+  pulse_data:
+
+networks:
+  pulse_net:
+    name: pulse-starter-kit_default
+    external: true

@@ -1,0 +1,27 @@
+# Environment and local configs
+.env
+*.env
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+.coverage
+htmlcov/
+
+# Database files
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs & temp
+*.log
+transcripts/secrets*
+.DS_Store
+Thumbs.db
