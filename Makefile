@@ -1,10 +1,17 @@
-.PHONY: up down test test-unit clean secrets-check
+.PHONY: up down kit dev test test-unit clean secrets-check
 
 up:
 	docker compose up --build -d
 
 down:
 	docker compose down
+
+kit:
+	python scripts/run_starter_kit.py
+
+dev:
+	@echo "Starting Pulse app with Uvicorn..."
+	uvicorn src.pulse.main:app --host 0.0.0.0 --port 8000 --reload
 
 test:
 ifdef U

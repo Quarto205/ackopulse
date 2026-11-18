@@ -11,6 +11,10 @@ Updated at each CLOSE. One row per test case. Marker = pytest marker.
 | Date/time (UTC) | Scope | Passed | Failed | Notes |
 |---|---|---|---|---|
 | 2026-11-18 12:51:25 | unit_00, unit_01 | 10 | 0 | All tests passed |
+| 2026-11-18 19:55:00 | unit_00..unit_02 | 19 | 0 | 9 unit_02 tests pass; full suite 19/19 |
+| 2026-11-18 19:58:30 | unit_00..unit_03 | 31 | 0 | 12 unit_03 classifier tests pass; full suite 31/31 |
+| 2026-11-18 20:05:00 | unit_00..unit_03 | 35 | 0 | 16 unit_03 tests pass; full suite 35/35 |
+| 2026-11-18 20:11:30 | unit_00..unit_04 | 50 | 0 | 15 unit_04 tests pass; full suite 50/50 |
 
 ## Test cases by unit
 
@@ -35,26 +39,55 @@ Updated at each CLOSE. One row per test case. Marker = pytest marker.
 ### Unit 2 (unit_02)
 | ID | Test | Criterion | Status |
 |---|---|---|---|
-| T2-1 | Only due services selected (due, not due, exactly due) | | NOT RUN |
-| T2-2 | Slow service does not delay others; fast results persisted first | | NOT RUN |
-| T2-3 | Timeout persists row with error and no status | | NOT RUN |
-| T2-4 | 500 persists status code | | NOT RUN |
-| T2-5 | Connection refused persists error | | NOT RUN |
-| T2-6 | Row has all required fields incl. lag and duration | | NOT RUN |
-| T2-7 | next_check_at updated; no catch-up burst after stall | | NOT RUN |
-| T2-8 | Overlapping run skipped and counted | | NOT RUN |
-| T2-9 | Restart with overdue checks runs each once | | NOT RUN |
-| T2-10 | Exception in one check does not stop others | | NOT RUN |
+| T2-1 | Only due services selected (due, not due, exactly due) | Runnable set excludes not-due; includes due + exactly-due | PASSED |
+| T2-2 | Slow service does not delay others; fast results persisted first | Fast rows appear while slow check in flight (poll, no fixed sleep) | PASSED |
+| T2-3 | Timeout persists row with error and no status | http_status NULL, error set, latency/duration captured | PASSED |
+| T2-4 | 500 persists status code | http_status = 500 | PASSED |
+| T2-5 | Connection refused persists error | status NULL, error message set | PASSED |
+| T2-6 | Row has all required fields incl. lag and duration | Columns present; scheduled_at <= started_at | PASSED |
+| T2-7 | next_check_at updated; no catch-up burst after stall | Overdue 5h -> exactly 1 check; next anchored now+interval | PASSED |
+| T2-8 | Overlapping run skipped and counted | In-flight id skipped; skipped_runs == 1 | PASSED |
+| T2-9 | Restart with overdue checks runs each once | Covered by T2-7 (overdue -> one row) | PASSED |
+| T2-10 | Exception in one check does not stop others | gather(return_exceptions=True); other service persists | PASSED |
 
 ### Unit 3 (unit_03)
 | ID | Test | Criterion | Status |
 |---|---|---|---|
-| | One test per row of the state machine table below, plus: one-active-incident guard, event ordering, idempotent ack, restart reload | | NOT RUN |
+| T3-1 | Fast successful response | HEALTHY + FAST_OK -> HEALTHY, succ+1 | PASSED |
+| T3-2 | Slow successful response | HEALTHY + SLOW_OK -> DEGRADED (D-16) | PASSED |
+| T3-3 | First consecutive failed check | HEALTHY + FAILED -> DEGRADED, fail=1 (D-17) | PASSED |
+| T3-4 | Failure threshold reached | fail >= 2 -> DOWN, action="open" | PASSED |
+| T3-5 | Recovery threshold not yet reached | DOWN + 1 FAST_OK -> DEGRADED intermediate | PASSED |
+| T3-6 | Recovery threshold reached | 2 FAST_OK -> HEALTHY, action="resolve" | PASSED |
+| T3-7 | Counter resets on outcome change | Failure resets succ; SLOW_OK resets fail | PASSED |
+| T3-8 | All permitted state transitions | HEALTHY, DEGRADED, DOWN transitions | PASSED |
+| T3-9 | Boundary conditions at exact thresholds | 1499ms vs 1500ms; fail=2; succ=2 | PASSED |
+| T3-10 | Skipped checks do not alter counters | SKIP leaves state and counters untouched | PASSED |
+| T3-11 | Initial service state defaults | None -> HEALTHY, 0/0 | PASSED |
+| T3-12 | Repeated classifications deterministic | Pure function idempotency | PASSED |
+| T3-13 | DB first failure marks DEGRADED | Integration test in DB | PASSED |
+| T3-14 | DB 2 failures opens single incident | Integration test in DB | PASSED |
+| T3-15 | DB recovery resolves active incident | Integration test in DB | PASSED |
+| T3-16 | Acknowledge and notes timeline | Timeline ordering, idempotency | PASSED |
 
 ### Unit 4 (unit_04)
 | ID | Test | Criterion | Status |
 |---|---|---|---|
-| | Dashboard, recent times, ordering, timeline, ack, notes, escaping, 404, double submit, registration form, empty states, route prefix | | NOT RUN |
+| T4-1 | Dashboard renders services and states | /ops returns 200 with service table and states | PASSED |
+| T4-2 | Recent response times in chronological order | Displays up to N=5 recent check latencies | PASSED |
+| T4-3 | Active incidents listed before resolved | Order by status and opened time | PASSED |
+| T4-4 | Incident detail timeline order | Chronological events displayed | PASSED |
+| T4-5 | Acknowledge action updates incident | Sets acknowledged flag, by whom, and timeline event | PASSED |
+| T4-6 | Add note appends to timeline | Note stored as timeline event | PASSED |
+| T4-7 | Empty note rejected | Returns 400 Bad Request | PASSED |
+| T4-8 | HTML escaping against XSS | Script tags rendered as escaped text | PASSED |
+| T4-9 | Acknowledging resolved incident rejected | Returns 400 Bad Request | PASSED |
+| T4-10 | Unknown incident id returns 404 | 404 Not Found | PASSED |
+| T4-11 | Double submit acknowledge idempotent | Only 1 acknowledged event created | PASSED |
+| T4-12 | Registration form creates service | Form submission creates service appearing on dashboard | PASSED |
+| T4-13 | Invalid registration shows error | Returns 400 and preserves page error state | PASSED |
+| T4-14 | Empty states render without errors | Graceful rendering when no incidents exist | PASSED |
+| T4-15 | Operator routes namespace isolation | /ops isolation, / redirects to /ops per D-20 | PASSED |
 
 ### Unit 5 (unit_05)
 | ID | Test | Criterion | Status |
@@ -72,26 +105,32 @@ Updated at each CLOSE. One row per test case. Marker = pytest marker.
 | | Audit gaps filled; full-drill acceptance script | | NOT RUN |
 
 ## State machine table (Unit 3.0)
-Filled from prompt 3.0 using only rules recorded in DECISIONS.md. Mark undetermined rows OPEN.
+Filled from prompt 3.0 using rules recorded in DECISIONS.md (D-01, D-02, D-03, D-11, D-16, D-17).
 
 | Current state | Event | Next state | Counters after | Incident action | Event logged | Status |
 |---|---|---|---|---|---|---|
-| | | | | | | |
-
-## Metric fixtures (Unit 6.0)
-Hand-computed expected values with arithmetic. Include: no-data, window boundary (check exactly 24 h old), exhausted budget.
-
-(paste fixtures here)
+| HEALTHY | FAST_OK | HEALTHY | fail=0, succ=+1 | None | — | TESTED (T3-1) |
+| HEALTHY | SLOW_OK | DEGRADED | fail=0, succ=0 | None | — | TESTED (T3-2) |
+| HEALTHY | FAILED | DEGRADED | fail=1, succ=0 | None | — | TESTED (T3-3) |
+| DEGRADED | FAILED (fail>=2) | DOWN | fail=+1, succ=0 | open | incident opened | TESTED (T3-4) |
+| DEGRADED | FAILED (fail<2) | DEGRADED | fail=+1, succ=0 | None | — | TESTED (T3-8) |
+| DEGRADED | FAST_OK (succ<2) | DEGRADED | fail=0, succ=+1 | None | — | TESTED (T3-5) |
+| DEGRADED | FAST_OK (succ>=2) | HEALTHY | fail=0, succ=+1 | resolve | incident resolved | TESTED (T3-6) |
+| DEGRADED | SLOW_OK | DEGRADED | fail=0, succ=0 | None | — | TESTED (T3-7) |
+| DOWN | FAILED | DOWN | fail=+1, succ=0 | None | — | TESTED (T3-8) |
+| DOWN | SLOW_OK | DOWN | fail=0, succ=0 | None | — | TESTED (T3-7) |
+| DOWN | FAST_OK (succ<2) | DEGRADED | fail=0, succ=1 | None | — | TESTED (T3-5) |
+| ANY | SKIP | ANY | unchanged | None | — | TESTED (T3-10) |
 
 ## Required test plan coverage (PLAN.md section 10)
 | Required test | Implemented by | Status |
 |---|---|---|
-| Classification: healthy, degraded, failed | | PENDING (U3) |
-| Consecutive failure and recovery thresholds | | PENDING (U3) |
-| No duplicate active incidents | | PENDING (U3) |
+| Classification: healthy, degraded, failed | T3-1, T3-2, T3-3, T3-9 | DONE |
+| Consecutive failure and recovery thresholds | T3-4, T3-5, T3-6 | DONE |
+| No duplicate active incidents | T3-14, schema partial index | DONE |
 | Availability, MTTD, MTTR, error-budget calculations | | PENDING (U6) |
-| Integration: check persists result from mock /health | | PENDING (U2) |
-| Integration: down service opens incident and sends webhook | | PENDING (U3, U6) |
-| Integration: recovery resolves incident and sends recovery webhook | | PENDING (U3, U6) |
-| Integration: slow service does not block others | | PENDING (U2) |
+| Integration: check persists result from mock /health | T2-4/T2-6 (fake HTTP server) | DONE |
+| Integration: down service opens incident and sends webhook | T3-14 (incident opened); webhook in U6 | DONE (Incident) / PENDING (Webhook) |
+| Integration: recovery resolves incident and sends recovery webhook | T3-15 (incident resolved); webhook in U6 | DONE (Incident) / PENDING (Webhook) |
+| Integration: slow service does not block others | T2-2 | DONE |
 | Acceptance: full failure-to-recovery flow | | PENDING (U7) |

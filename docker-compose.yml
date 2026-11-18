@@ -1,3 +1,7 @@
+# Pulse Unified Docker Compose Setup
+# Runs Pulse App + 4 Mock Acko Services + Webhook Receiver
+# Start with: docker compose up --build
+
 services:
   pulse:
     build: .
@@ -5,6 +9,7 @@ services:
     ports:
       - "${APP_PORT:-8000}:8000"
     environment:
+      - IN_DOCKER=1
       - DB_PATH=/app/data/pulse.db
       - WEBHOOK_URL=${WEBHOOK_URL:-http://webhook-receiver:9000/}
       - CHECK_TIMEOUT_SECONDS=2.0
@@ -15,6 +20,66 @@ services:
       - DEFAULT_SLO_TARGET=99.9
     volumes:
       - pulse_data:/app/data
+    depends_on:
+      - quotes
+      - payments
+      - claims
+      - notifications
+      - webhook-receiver
+    networks:
+      - pulse_net
+
+  quotes:
+    build: ./pulse-starter-kit/mock-service
+    container_name: pulse-quotes
+    environment:
+      SERVICE_NAME: quotes
+      PORT: "8080"
+    ports:
+      - "7001:8080"
+    networks:
+      - pulse_net
+
+  payments:
+    build: ./pulse-starter-kit/mock-service
+    container_name: pulse-payments
+    environment:
+      SERVICE_NAME: payments
+      PORT: "8080"
+    ports:
+      - "7002:8080"
+    networks:
+      - pulse_net
+
+  claims:
+    build: ./pulse-starter-kit/mock-service
+    container_name: pulse-claims
+    environment:
+      SERVICE_NAME: claims
+      PORT: "8080"
+    ports:
+      - "7003:8080"
+    networks:
+      - pulse_net
+
+  notifications:
+    build: ./pulse-starter-kit/mock-service
+    container_name: pulse-notifications
+    environment:
+      SERVICE_NAME: notifications
+      PORT: "8080"
+    ports:
+      - "7004:8080"
+    networks:
+      - pulse_net
+
+  webhook-receiver:
+    build: ./pulse-starter-kit/webhook-receiver
+    container_name: pulse-webhook-receiver
+    environment:
+      PORT: "9000"
+    ports:
+      - "${WEBHOOK_PORT:-9900}:9000"
     networks:
       - pulse_net
 
@@ -23,5 +88,4 @@ volumes:
 
 networks:
   pulse_net:
-    name: pulse-starter-kit_default
-    external: true
+    driver: bridge

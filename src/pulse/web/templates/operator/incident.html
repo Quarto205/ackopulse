@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Incident #{{ incident.id }} &mdash; Pulse Operator Hub{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 16px;">
+  <a href="/ops">&larr; Back to Dashboard</a>
+</div>
+
+<div class="card">
+  <h2>Incident #{{ incident.id }}: {{ incident.title }}</h2>
+  <div style="display: flex; gap: 24px; margin-top: 12px; font-size: 14px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+    <div><strong>Service:</strong> {{ incident.service_name }}</div>
+    <div><strong>Status:</strong> 
+      <span class="badge badge-{% if incident.status == 'active' %}down{% else %}healthy{% endif %}">
+        {{ incident.status.upper() }}
+      </span>
+    </div>
+    <div><strong>Opened:</strong> {{ incident.opened_at }} UTC</div>
+    {% if incident.resolved_at %}
+    <div><strong>Resolved:</strong> {{ incident.resolved_at }} UTC</div>
+    {% endif %}
+    <div><strong>Acknowledged:</strong> 
+      {% if incident.acknowledged_at %}
+        <span style="color: var(--healthy);">&check; {{ incident.acknowledged_by }} ({{ incident.acknowledged_at }} UTC)</span>
+      {% else %}
+        <span style="color: var(--degraded);">No</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 24px;">
+    <div>
+      <h3>Event Timeline</h3>
+      <ul class="timeline">
+        {% for event in timeline %}
+        <li class="timeline-item">
+          <div style="font-size: 12px; color: var(--text-muted);">{{ event.created_at }} UTC &mdash; <strong>{{ event.event_type }}</strong></div>
+          <div style="margin-top: 4px; font-size: 14px;">{{ event.message }}</div>
+        </li>
+        {% else %}
+        <li style="color: var(--text-muted);">No timeline events recorded.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div>
+      {% if incident.status == 'active' %}
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <h4>Acknowledge Incident</h4>
+          {% if incident.acknowledged_at %}
+            <p style="color: var(--healthy); font-size: 13px;">&check; Acknowledged by <strong>{{ incident.acknowledged_by }}</strong></p>
+          {% else %}
+            <form method="POST" action="/ops/incidents/{{ incident.id }}/acknowledge">
+              <label style="font-size: 12px; color: var(--text-muted);">Operator Name:</label>
+              <input type="text" name="acknowledged_by" value="operator" required style="margin-top: 4px;">
+              <button type="submit" class="btn" style="width: 100%;">Acknowledge</button>
+            </form>
+          {% endif %}
+        </div>
+
+        <div style="background: rgba(51, 65, 85, 0.5); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <h4>Add Operator Note</h4>
+          <form method="POST" action="/ops/incidents/{{ incident.id }}/notes">
+            <label style="font-size: 12px; color: var(--text-muted);">Note Message:</label>
+            <textarea name="note" rows="3" placeholder="Status updates, actions taken..." required style="margin-top: 4px;"></textarea>
+            <button type="submit" class="btn btn-secondary" style="width: 100%;">Append Note</button>
+          </form>
+        </div>
+      {% else %}
+        <div style="padding: 16px; border: 1px solid var(--border); border-radius: 8px; color: var(--text-muted); font-size: 13px;">
+          This incident is resolved. No further operator actions permitted.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

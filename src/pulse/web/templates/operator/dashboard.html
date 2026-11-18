@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Pulse Operator Hub{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h2>Monitored Services</h2>
+  {% if services %}
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>State</th>
+        <th>Health URL</th>
+        <th>Owner</th>
+        <th>Latest Latency</th>
+        <th>Recent Latencies (last {{ recent_n }})</th>
+        <th>Next Check (UTC)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in services %}
+      <tr>
+        <td><strong>{{ s.name }}</strong></td>
+        <td>
+          <span class="badge badge-{{ s.current_state.lower() }}">{{ s.current_state }}</span>
+        </td>
+        <td><code>{{ s.health_url }}</code></td>
+        <td>{{ s.owner }}</td>
+        <td>
+          {% if s.latest_latency is not none %}
+            {{ s.latest_latency }} ms
+          {% else %}
+            <span style="color: var(--text-muted);">&mdash;</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="spark">
+            {% for check in s.recent_checks %}
+              <span class="spark-item" title="Checked: {{ check.checked_at }} UTC">
+                {% if check.latency_ms is not none %}{{ check.latency_ms }} ms{% else %}err{% endif %}
+              </span>
+            {% else %}
+              <span style="color: var(--text-muted); font-size: 12px;">No checks yet</span>
+            {% endfor %}
+          </div>
+        </td>
+        <td style="font-size: 13px;">{{ s.next_check_at or '&mdash;' }} UTC</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p style="color: var(--text-muted);">No monitored services registered yet.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Active Incidents</h2>
+  {% if active_incidents %}
+  <table>
+    <thead>
+      <tr>
+        <th>Incident</th>
+        <th>Service</th>
+        <th>Opened (UTC)</th>
+        <th>Status</th>
+        <th>Acknowledged</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inc in active_incidents %}
+      <tr>
+        <td><a href="/ops/incidents/{{ inc.id }}">#{{ inc.id }} &mdash; {{ inc.title }}</a></td>
+        <td><strong>{{ inc.service_name }}</strong></td>
+        <td>{{ inc.opened_at }} UTC</td>
+        <td><span class="badge badge-down">ACTIVE</span></td>
+        <td>
+          {% if inc.acknowledged_at %}
+            <span style="color: var(--healthy);">&check; by {{ inc.acknowledged_by }}</span>
+          {% else %}
+            <span style="color: var(--degraded);">&cross; Unacknowledged</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="/ops/incidents/{{ inc.id }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Manage</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p style="color: var(--healthy);">&check; No active incidents at this time.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Recent Incident History</h2>
+  {% if resolved_incidents %}
+  <table>
+    <thead>
+      <tr>
+        <th>Incident</th>
+        <th>Service</th>
+        <th>Opened (UTC)</th>
+        <th>Resolved (UTC)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inc in resolved_incidents %}
+      <tr>
+        <td><a href="/ops/incidents/{{ inc.id }}">#{{ inc.id }} &mdash; {{ inc.title }}</a></td>
+        <td>{{ inc.service_name }}</td>
+        <td>{{ inc.opened_at }} UTC</td>
+        <td>{{ inc.resolved_at }} UTC</td>
+        <td><span class="badge badge-healthy">RESOLVED</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p style="color: var(--text-muted);">No incident history recorded.</p>
+  {% endif %}
+</section>
+{% endblock %}

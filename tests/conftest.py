@@ -1,13 +1,46 @@
 import os
+import re
+import socket
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+
 from src.pulse.clock import clock
 from src.pulse.config import settings
 from src.pulse.db import get_db, init_db
 from src.pulse.main import app
 from src.pulse.seed import seed_services
+
+
+class FakeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.startswith("/slow"):
+            m = re.search(r"ms=(\d+)", self.path)
+            ms = int(m.group(1)) if m else 300
+            time.sleep(ms / 1000)
+            self.send_response(200)
+        elif self.path.startswith("/error500"):
+            self.send_response(500)
+        else:
+            self.send_response(200)
+        self.end_headers()
+
+    def log_message(self, *a):
+        pass
+
+
+@pytest.fixture(scope="module")
+def fake_server():
+    server = ThreadingHTTPServer(("127.0.0.1", 0), FakeHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    yield f"http://127.0.0.1:{server.server_address[1]}"
+    server.shutdown()
 
 
 @pytest.fixture(autouse=True)
