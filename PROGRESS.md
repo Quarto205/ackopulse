@@ -3,8 +3,8 @@
 Update at the end of each unit (CLOSE prompt). Times are minutes.
 
 ## Current
-- Current unit: Unit 6 Complete (ready for Unit 7)
-- Branch: main
+- Current unit: Complete (Units 0 through 7 verified)
+- Branch: main / unit-7
 - Last commit: -
 
 ## Units
@@ -18,7 +18,7 @@ Update at the end of each unit (CLOSE prompt). Times are minutes.
 | U4 | Operator UI | 14 | 12 | DONE | 15/15 | 04-operator-ui | Dashboard, recent latencies, incident detail, ack, notes, registration form |
 | U5 | Public status page | 8 | 12 | DONE | 6/6 | 05-public-page | /status read-only, D-20/21/22, privacy leak tests, 56/56 total |
 | U6 | Notifications + metrics | 18 | 20 | DONE | 10/10 | 06-notify-metrics | Sender D-23/24/28, metrics D-25/26/27, /api/metrics/summary, 66/66 total |
-| U7 | Verification + handover | 16 | | NOT STARTED | | 07-verification | |
+| U7 | Verification + handover | 16 | 15 | DONE | 3/3 | 07-verification | End-to-end integration tests, scripts/acceptance.py, secrets check, 69/69 total |
 
 Status values: NOT STARTED, IN PROGRESS, DONE, CUT (thin form), ROLLED BACK.
 
@@ -35,11 +35,11 @@ Status values: NOT STARTED, IN PROGRESS, DONE, CUT (thin form), ROLLED BACK.
 | 7 | Public status page | U5 | DONE (/status, 6 tests, no leaks) |
 | 8 | Notifications | U6 | DONE (webhook sender, pending rows, retries) |
 | 9 | Product metrics | U2, U6 | DONE (checker stats in U2; reliability in U6) |
-| 10 | Runnable | U0, U7 | U0 runnable |
+| 10 | Runnable | U0, U7 | DONE (Docker compose stack + scripts/acceptance.py) |
 
 ## Gates
 - Gate 1: PLAN.md committed by 1:15. Status: Complete
-- Gate 2: working backend + this file committed by 3:30. Status: Complete (Units 0-6 done, 66/66 tests passing)
+- Gate 2: working backend + this file committed by 3:30. Status: Complete (Units 0-7 done, 69/69 tests passing)
 
 ## What works / what remains
 - Works:
@@ -50,5 +50,6 @@ Status values: NOT STARTED, IN PROGRESS, DONE, CUT (thin form), ROLLED BACK.
   - Unit 4: Operator UI under `/ops`: live dashboard with auto-refresh meta tag, service health status badges, recent response time spark badges ($N=5$), active incidents list with acknowledgment status, resolved incidents history, incident detail view with chronological timeline, idempotent acknowledge action, operator note appending with HTML-escaping, and service registration form (`/ops/services/new`). Root `/` redirects to `/ops`.
   - Unit 5: Public status page under `/status`: customer-facing, read-only view with collapsed states (UP, ISSUE, OUTAGE), rolling 24h incident history, strict data isolation guaranteeing zero leaks of internal health URLs, owner details, or operator notes.
   - Unit 6: Automated webhook delivery on incident open and resolve with bounded retries (3 attempts), delivery attempt records in SQLite, idempotency enforcement, and pure metrics calculations for rolling 24-hour sampled availability, error budget remaining, MTTD, MTTR, exposed via `/api/metrics/summary`.
+  - Unit 7: Comprehensive end-to-end integration tests (T7-1, T7-2, T7-3) validating down -> incident -> webhook and recovery -> resolve -> webhook flows, automated acceptance drill (`scripts/acceptance.py`), automated secrets check (`scripts/secrets_check.py`). 69/69 automated tests passing.
 - Remains:
-  - Unit 7: Acceptance test drill script (`scripts/acceptance.py`), final verification, and documentation wrap-up.
+  - None. System is production-verified and ready for handover.

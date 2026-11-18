@@ -17,6 +17,7 @@ Updated at each CLOSE. One row per test case. Marker = pytest marker.
 | 2026-11-18 19:58:30 | unit_00..unit_03 | 31 | 0 | 12 unit_03 classifier tests pass; full suite 31/31 |
 | 2026-11-18 20:05:00 | unit_00..unit_03 | 35 | 0 | 16 unit_03 tests pass; full suite 35/35 |
 | 2026-11-18 20:11:30 | unit_00..unit_04 | 50 | 0 | 15 unit_04 tests pass; full suite 50/50 |
+| 2026-11-18 21:00:00 | unit_00..unit_07 | 69 | 0 | 3 unit_07 tests pass; full suite 69/69 |
 
 ## Test cases by unit
 
@@ -118,7 +119,9 @@ Updated at each CLOSE. One row per test case. Marker = pytest marker.
 ### Unit 7 (unit_07)
 | ID | Test | Criterion | Status |
 |---|---|---|---|
-| | Audit gaps filled; full-drill acceptance script | | NOT RUN |
+| T7-1 | Down service opens incident and delivers webhook | 2 failures -> DOWN, active incident, webhook delivered (D-02, D-06) | PASSED |
+| T7-2 | Recovered service resolves incident and delivers recovery webhook | 2 fast successes -> HEALTHY, resolved incident, webhook delivered (D-03, D-06) | PASSED |
+| T7-3 | Incident operator timeline and no webhook on ack/notes | Ack and notes on timeline; no spurious webhooks (D-28) | PASSED |
 
 ## State machine table (Unit 3.0)
 Filled from prompt 3.0 using rules recorded in DECISIONS.md (D-01, D-02, D-03, D-11, D-16, D-17).
@@ -147,7 +150,7 @@ Filled from prompt 3.0 using rules recorded in DECISIONS.md (D-01, D-02, D-03, D
 | Availability, MTTD, MTTR, error-budget calculations | T6-5..T6-9 | DONE |
 | Unit tests: classification, thresholds (state machine) | U3 suite | DONE |
 | Integration: check persists result from mock /health | T2-4/T2-6 (fake HTTP server) | DONE |
-| Integration: down service opens incident and sends webhook | T3-14 (incident opened); webhook in U6 | DONE (Incident) / PENDING (Webhook) |
-| Integration: recovery resolves incident and sends recovery webhook | T3-15 (incident resolved); webhook in U6 | DONE (Incident) / PENDING (Webhook) |
+| Integration: down service opens incident and sends webhook | T3-14, T7-1 | DONE |
+| Integration: recovery resolves incident and sends recovery webhook | T3-15, T7-2 | DONE |
 | Integration: slow service does not block others | T2-2 | DONE |
-| Acceptance: full failure-to-recovery flow | | PENDING (U7) |
+| Acceptance: full failure-to-recovery flow | scripts/acceptance.py | DONE |
